@@ -1,0 +1,13 @@
+FROM alpine:3.20
+
+# Install dependencies
+RUN apk add --no-cache \
+    bash \
+    aws-cli \
+    vault
+
+# Add a script to take the snapshot and upload to S3
+COPY vault-snapshot.sh /usr/local/bin/vault-snapshot.sh
+RUN chmod +x /usr/local/bin/vault-snapshot.sh
+
+ENTRYPOINT ["/usr/local/bin/vault-snapshot.sh"]
