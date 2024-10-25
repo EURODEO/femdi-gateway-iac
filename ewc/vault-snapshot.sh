@@ -48,7 +48,7 @@ SNAPSHOT_NAME="snapshot-$TIMESTAMP_ISO_8601.snap"
 vault operator raft snapshot save /tmp/$SNAPSHOT_NAME
 
 # Upload to S3
-aws s3 cp /tmp/$SNAPSHOT_NAME s3://$S3_BUCKET/$SNAPSHOT_NAME
+aws s3 cp /tmp/$SNAPSHOT_NAME s3://${S3_BUCKET}${SNAPSHOT_NAME}
 
 # Clean up
 rm /tmp/$SNAPSHOT_NAME
