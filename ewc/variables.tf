@@ -122,4 +122,20 @@ variable "devportal_subdomain" {
   default     = "devportal"
 }
 
+variable "vault_backup_bucket_base_uri" {
+  description = "AWS S3 bucket base URI for vault backups"
+  type        = string
+  default     = "s3://dev-rodeo-ewc-vault/vault/"
+}
 
+variable "s3_bucket_access_key" {
+  description = "AWS access key for S3 bucket"
+  type        = string
+  sensitive   = true
+}
+
+variable "s3_bucket_secret_key" {
+  description = "AWS secret key for S3 bucket"
+  type        = string
+  sensitive   = true
+}
