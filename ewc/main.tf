@@ -598,6 +598,18 @@ EOT
   depends_on = [data.kubernetes_resource.vault-pods-after]
 }
 
+resource "vault_policy" "take-snapshot" {
+  name = "take-snapshot"
+
+  policy = <<EOT
+path "sys/storage/raft/snapshot" {
+  capabilities = ["read"]
+}
+EOT
+
+  depends_on = [data.kubernetes_resource.vault-pods-after]
+}
+
 resource "vault_jwt_auth_backend_role" "api-management-tool-gha" {
   role_name  = "api-management-tool-gha"
   backend    = vault_jwt_auth_backend.github.path
@@ -620,6 +632,12 @@ resource "vault_token" "apisix-global" {
 resource "vault_token" "dev-portal-global" {
   policies  = [vault_policy.dev-portal-global]
   period    = "768h"
+  renewable = true
+}
+
+resource "vault_token" "snapshot" {
+  policies = [vault_policy.take-snapshot.name]
+  period = "768h"
   renewable = true
 }
 

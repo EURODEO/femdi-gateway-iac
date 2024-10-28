@@ -3,6 +3,7 @@
 ################################################################################
 
 # TODO consider using a service account for assuming AWS role - no need to use access key and secret key
+# Using service account with self-hosted k8s cluster requires own OIDC provider, keycloak, s3, dex etc.
 
 # TODO which namespace should these be in - vault namespace or a new one or some other already exisitng?
 # for now go with vault namespace
@@ -14,7 +15,7 @@ resource "kubernetes_secret" "vault_backup_cron_job_secrets" {
   }
 
   data = {
-    VAULT_TOKEN           = "TODO" # follow the same way as did for apisix and dev portal tokens
+    VAULT_TOKEN           = vault_token.snapshot.client_token
     AWS_ACCESS_KEY_ID     = var.s3_bucket_access_key
     AWS_SECRET_ACCESS_KEY = var.s3_bucket_secret_key
   }
