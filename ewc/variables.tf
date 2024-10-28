@@ -150,4 +150,5 @@ variable "s3_bucket_access_key" {
 variable "s3_bucket_secret_key" {
   description = "AWS secret key for S3 bucket"
   type        = string
+  sensitive   = true
 }
