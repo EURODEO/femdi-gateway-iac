@@ -18,6 +18,8 @@ resource "kubernetes_secret" "vault_backup_cron_job_secrets" {
     AWS_ACCESS_KEY_ID     = var.s3_bucket_access_key
     AWS_SECRET_ACCESS_KEY = var.s3_bucket_secret_key
   }
+
+  type = "Opaque"
 }
 
 resource "kubernetes_cron_job_v1" "vault_backup" {
