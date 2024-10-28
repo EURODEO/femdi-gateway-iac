@@ -115,11 +115,24 @@ variable "vault_key_treshold" {
   default     = 3
 }
 
+variable "vault_token" {
+  description = "Token for Vault if it is already initialized"
+  type        = string
+  sensitive   = true
+}
 
-variable "devportal_subdomain" {
+
+variable "dev-portal_subdomain" {
   description = "subdomain where devportal will be hosted"
   type        = string
   default     = "devportal"
+}
+
+variable "dev-portal_registry_password" {
+  description = "subdomain where devportal will be hosted"
+  type        = string
+  default     = "devportal"
+  sensitive   = true
 }
 
 variable "vault_backup_bucket_base_uri" {
@@ -137,5 +150,4 @@ variable "s3_bucket_access_key" {
 variable "s3_bucket_secret_key" {
   description = "AWS secret key for S3 bucket"
   type        = string
-  sensitive   = true
 }

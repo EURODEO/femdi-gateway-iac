@@ -25,6 +25,14 @@ provider "rancher2" {
 provider "http" {
 }
 
+provider "vault" {
+  address = "https://${var.vault_subdomain}.${var.dns_zone}"
+  token   = coalesce(data.external.vault-init.result.root_token, var.vault_token)
+}
+
+provider "random" {
+}
+
 ################################################################################
 # Get id of Rancher System project
 ################################################################################
@@ -269,145 +277,6 @@ resource "rancher2_project" "gateway" {
   name       = "gateway"
   cluster_id = var.rancher_cluster_id
 }
-
-################################################################################
-# Install Apisix
-################################################################################
-resource "kubernetes_namespace" "apisix" {
-  metadata {
-    annotations = {
-      "field.cattle.io/projectId" = rancher2_project.gateway.id
-    }
-
-    name = "apisix"
-  }
-}
-
-# ConfigMap for custom error pages
-resource "kubernetes_config_map" "custom_error_pages" {
-  metadata {
-    name      = "custom-error-pages"
-    namespace = kubernetes_namespace.apisix.metadata.0.name
-  }
-  data = {
-    "apisix_error_429.html" = templatefile("../apisix/error_pages/apisix_error_429.html", {
-      devportal_address = "${var.devportal_subdomain}.${var.dns_zone}"
-    })
-    "apisix_error_403.html" = templatefile("../apisix/error_pages/apisix_error_403.html", {
-      devportal_address = "${var.devportal_subdomain}.${var.dns_zone}"
-    })
-  }
-}
-
-resource "helm_release" "apisix" {
-  name             = "apisix"
-  repository       = "https://charts.apiseven.com"
-  chart            = "apisix"
-  version          = "2.6.0"
-  namespace        = kubernetes_namespace.apisix.metadata.0.name
-  create_namespace = false
-
-  values = [
-    templatefile("./helm-values/apisix-values-template.yaml", {
-      cluster_issuer = kubectl_manifest.clusterissuer_letsencrypt_prod.name,
-      hostname       = "${var.apisix_subdomain}.${var.dns_zone}",
-      ip             = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip
-    })
-  ]
-
-  set_sensitive {
-    name  = "apisix.admin.credentials.admin"
-    value = var.apisix_admin
-  }
-
-  set_sensitive {
-    name  = "apisix.admin.credentials.viewer"
-    value = var.apisix_reader
-  }
-
-  set_list {
-    name  = "apisix.admin.allow.ipList"
-    value = var.apisix_ip_list
-  }
-
-  # Custom error pages mount
-  set {
-    name  = "extraVolumeMounts[0].name"
-    value = "custom-error-pages"
-
-  }
-
-  set {
-    name  = "extraVolumeMounts[0].mountPath"
-    value = "/custom/error-pages"
-
-  }
-
-  set {
-    name  = "extraVolumeMounts[0].readOnly"
-    value = true
-
-  }
-
-  set {
-    name  = "extraVolumes[0].name"
-    value = "custom-error-pages"
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.name"
-    value = kubernetes_config_map.custom_error_pages.metadata[0].name
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.items[0].key"
-    value = "apisix_error_403.html"
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.items[0].path"
-    value = "apisix_error_403.html"
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.items[1].key"
-    value = "apisix_error_429.html"
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.items[1].path"
-    value = "apisix_error_429.html"
-
-  }
-
-  #Custom error page nginx.conf
-  set {
-    name  = "apisix.nginx.configurationSnippet.httpStart"
-    value = file("../apisix/error_values/httpStart")
-  }
-
-  set {
-    name  = "apisix.nginx.configurationSnippet.httpSrv"
-    value = file("../apisix/error_values/httpSrv")
-  }
-
-  # Trust container's CA for Vault and other outbound CA requests
-  set {
-    name  = "apisix.nginx.configurationSnippet.httpEnd"
-    value = "lua_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;"
-
-  }
-
-  depends_on = [helm_release.cert-manager, helm_release.external-dns,
-  helm_release.ingress_nginx, helm_release.csi-cinder]
-
-}
-
 
 ################################################################################
 # Install Keycloak 
@@ -674,3 +543,361 @@ data "kubernetes_resource" "vault-pods-after" {
   depends_on = [helm_release.vault, time_sleep.wait_5_second, data.kubernetes_resource.vault-pods-before, data.external.vault-init]
 }
 
+resource "vault_mount" "apisix" {
+  path        = "apisix"
+  type        = "kv"
+  options     = { version = "1" }
+  description = "Apisix secrets"
+
+  depends_on = [data.kubernetes_resource.vault-pods-after]
+}
+
+resource "vault_jwt_auth_backend" "github" {
+  description        = "JWT for github actions"
+  path               = "github"
+  oidc_discovery_url = "https://token.actions.githubusercontent.com"
+  bound_issuer       = "https://token.actions.githubusercontent.com"
+
+  depends_on = [data.kubernetes_resource.vault-pods-after]
+}
+
+resource "vault_policy" "apisix-global" {
+  name = "apisix-global"
+
+  policy = <<EOT
+path "apisix/consumers/*" {
+  capabilities = ["read"]
+}
+
+EOT
+
+  depends_on = [data.kubernetes_resource.vault-pods-after]
+}
+
+resource "vault_policy" "dev-portal-global" {
+  name = "dev-portal-global"
+
+  policy = <<EOT
+path "apisix/consumers/*" {
+	capabilities = ["create", "read", "update", "patch", "delete", "list"]
+}
+EOT
+
+  depends_on = [data.kubernetes_resource.vault-pods-after]
+}
+
+resource "vault_policy" "api-management-tool-gha" {
+  name = "dev-portal-global"
+
+  policy = <<EOT
+path "apisix-dev/apikeys/*" { capabilities = ["read"] } 
+path "apisix-dev/urls/*" { capabilities = ["read"] } 
+path "apisix-dev/admin/*" { capabilities = ["read"] }
+EOT
+
+  depends_on = [data.kubernetes_resource.vault-pods-after]
+}
+
+resource "vault_jwt_auth_backend_role" "api-management-tool-gha" {
+  role_name  = "api-management-tool-gha"
+  backend    = vault_jwt_auth_backend.github.path
+  role_type  = "jwt"
+  user_claim = "actor"
+  bound_claims = {
+    repository : "EURODEO/api-management-tool-poc"
+  }
+  bound_audiences = ["https://github.com/EURODEO/api-management-tool-poc"]
+  token_policies  = [vault_policy.api-management-tool-gha.name]
+  token_ttl       = 300
+  depends_on      = [data.kubernetes_resource.vault-pods-after]
+}
+
+resource "vault_token" "apisix-global" {
+  policies  = [vault_policy.apisix-global]
+  period    = "768h"
+  renewable = true
+}
+resource "vault_token" "dev-portal-global" {
+  policies  = [vault_policy.dev-portal-global]
+  period    = "768h"
+  renewable = true
+}
+
+################################################################################
+
+# Install Apisix
+################################################################################
+resource "kubernetes_namespace" "apisix" {
+  metadata {
+    annotations = {
+      "field.cattle.io/projectId" = rancher2_project.gateway.id
+    }
+
+    name = "apisix"
+  }
+}
+
+# ConfigMap for custom error pages
+resource "kubernetes_config_map" "custom_error_pages" {
+  metadata {
+    name      = "custom-error-pages"
+    namespace = kubernetes_namespace.apisix.metadata.0.name
+  }
+  data = {
+    "apisix_error_429.html" = templatefile("../apisix/error_pages/apisix_error_429.html", {
+      devportal_address = "${var.dev-portal_subdomain}.${var.dns_zone}"
+    })
+    "apisix_error_403.html" = templatefile("../apisix/error_pages/apisix_error_403.html", {
+      devportal_address = "${var.dev-portal_subdomain}.${var.dns_zone}"
+    })
+  }
+}
+
+resource "helm_release" "apisix" {
+  name             = "apisix"
+  repository       = "https://charts.apiseven.com"
+  chart            = "apisix"
+  version          = "2.6.0"
+  namespace        = kubernetes_namespace.apisix.metadata.0.name
+  create_namespace = false
+
+  values = [
+    templatefile("./helm-values/apisix-values-template.yaml", {
+      cluster_issuer = kubectl_manifest.clusterissuer_letsencrypt_prod.name,
+      hostname       = "${var.apisix_subdomain}.${var.dns_zone}",
+      ip             = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip
+    })
+  ]
+
+  set_sensitive {
+    name  = "apisix.admin.credentials.admin"
+    value = var.apisix_admin
+  }
+
+  set_sensitive {
+    name  = "apisix.admin.credentials.viewer"
+    value = var.apisix_reader
+  }
+
+  set_list {
+    name  = "apisix.admin.allow.ipList"
+    value = var.apisix_ip_list
+  }
+
+  # Apisix vault integration
+  set {
+    name  = "apisix.vault.enabled"
+    value = true
+  }
+
+  set {
+    name  = "apisix.vault.host"
+    value = "http://vault-active.vault.svc.cluster.local:8200"
+  }
+
+  set {
+    name  = "apisix.vault.prefix"
+    value = "apisix-dev/consumers"
+  }
+
+  set_sensitive {
+    name  = "apisix.vault.token"
+    value = vault_token.apisix-global.client_token
+  }
+
+  # Custom error pages mount
+  set {
+    name  = "extraVolumeMounts[0].name"
+    value = "custom-error-pages"
+
+  }
+
+  set {
+    name  = "extraVolumeMounts[0].mountPath"
+    value = "/custom/error-pages"
+
+  }
+
+  set {
+    name  = "extraVolumeMounts[0].readOnly"
+    value = true
+
+  }
+
+  set {
+    name  = "extraVolumes[0].name"
+    value = "custom-error-pages"
+
+  }
+
+  set {
+    name  = "extraVolumes[0].configMap.name"
+    value = kubernetes_config_map.custom_error_pages.metadata[0].name
+
+  }
+
+  set {
+    name  = "extraVolumes[0].configMap.items[0].key"
+    value = "apisix_error_403.html"
+
+  }
+
+  set {
+    name  = "extraVolumes[0].configMap.items[0].path"
+    value = "apisix_error_403.html"
+
+  }
+
+  set {
+    name  = "extraVolumes[0].configMap.items[1].key"
+    value = "apisix_error_429.html"
+
+  }
+
+  set {
+    name  = "extraVolumes[0].configMap.items[1].path"
+    value = "apisix_error_429.html"
+
+  }
+
+  #Custom error page nginx.conf
+  set {
+    name  = "apisix.nginx.configurationSnippet.httpStart"
+    value = file("../apisix/error_values/httpStart")
+  }
+
+  set {
+    name  = "apisix.nginx.configurationSnippet.httpSrv"
+    value = file("../apisix/error_values/httpSrv")
+  }
+
+  # Trust container's CA for Vault and other outbound CA requests
+  set {
+    name  = "apisix.nginx.configurationSnippet.httpEnd"
+    value = "lua_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;"
+
+  }
+
+  depends_on = [helm_release.cert-manager, helm_release.external-dns,
+  helm_release.ingress_nginx, helm_release.csi-cinder]
+
+}
+
+################################################################################
+
+# Install Dev-portal
+################################################################################
+resource "kubernetes_namespace" "dev-portal" {
+  metadata {
+    annotations = {
+      "field.cattle.io/projectId" = rancher2_project.gateway.id
+    }
+
+    name = "dev-portal"
+  }
+}
+
+resource "random_string" "random" {
+  length = 32
+}
+
+# Create Secret for credentials
+resource "kubernetes_secret" "dev-portal-secret-for-backend" {
+  metadata {
+    name      = "dev-portal-secret-for-backend"
+    namespace = kubernetes_namespace.dev-portal.metadata.0.name
+  }
+
+  data = {
+    "secrets.yaml" = yamlencode({
+
+      "vault" = {
+        "url"          = "http://vault-active.vault.svc.cluster.local:8200"
+        "token"        = vault_token.dev-portal-global
+        "base_path"    = "apisix-dev/consumers"
+        "secret_phase" = random_string.random.result
+      }
+
+      "apisix" = {
+        "key_path" = "$secret:/vault/1"
+        "instances" = [
+          {
+            "name"          = "EWC"
+            "admin_url"     = "http://apisix-admin.apisix.svc.cluster.local:9180"
+            "gateway_url"   = "https://${var.apisix_subdomain}.${var.dns_zone}"
+            "admin_api_key" = var.apisix_admin
+          }
+        ]
+      }
+      "keycloak" = {
+        "url"           = "http://keycloak.keycloak.svc.cluster.local"
+        "realm"         = "test"
+        "client_id"     = "dev-portal-api"
+        "client_secret" = ""
+      }
+    })
+  }
+
+  type = "Opaque"
+}
+
+resource "helm_release" "dev-portal" {
+  name             = "dev-portal"
+  repository       = "https://rodeo-project.eu/Dev-portal/"
+  chart            = "dev-portal"
+  version          = "1.10.2"
+  namespace        = kubernetes_namespace.dev-portal.metadata.0.name
+  create_namespace = false
+
+  values = [
+    templatefile("./helm-values/dev-portal-values-template.yaml", {
+      cluster_issuer = kubectl_manifest.clusterissuer_letsencrypt_prod.name,
+      hostname       = "${var.dev-portal_subdomain}.${var.dns_zone}",
+      ip             = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip
+    })
+  ]
+
+  set {
+    name  = "imageCredentials.username"
+    value = "USERNAME"
+  }
+
+  set_sensitive {
+    name  = "imageCredentials.password"
+    value = var.dev-portal_registry_password
+  }
+
+  set {
+    name  = "backend.image.tag"
+    value = "sha-e5fe5f5"
+  }
+
+  set {
+    name  = "backend.secrets.secretName"
+    value = kubernetes_secret.dev-portal-secret-for-backend.metadata.0.name
+  }
+
+  set {
+    name  = "backend.secrets.secretName"
+    value = kubernetes_secret.dev-portal-secret-for-backend.metadata.0.name
+  }
+
+  set {
+    name  = "frontend.image.tag"
+    value = "sha-5608cd2"
+  }
+
+  set {
+    name  = "frontend.keycloak_logout_url"
+    value = "https://${var.dev-portal_subdomain}.${var.dns_zone}"
+  }
+
+  set {
+    name  = "keycloak_url"
+    value = "https://${var.keycloak_subdomain}.${var.dns_zone}"
+  }
+  depends_on = [helm_release.cert-manager, helm_release.external-dns,
+    helm_release.ingress_nginx, helm_release.csi-cinder, helm_release.apisix
+  , helm_release.keycloak]
+
+}
