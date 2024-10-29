@@ -15,12 +15,19 @@ resource "kubernetes_secret" "vault_backup_cron_job_secrets" {
   }
 
   data = {
-    VAULT_TOKEN           = vault_token.snapshot.client_token
     AWS_ACCESS_KEY_ID     = var.s3_bucket_access_key
     AWS_SECRET_ACCESS_KEY = var.s3_bucket_secret_key
   }
 
   type = "Opaque"
+}
+
+resource "kubernetes_service_account" "backup_cron_job_service_account" {
+  metadata {
+    name      = "backup-cron-job-sa"
+    namespace = kubernetes_namespace.vault.metadata.0.name
+  }
+
 }
 
 resource "kubernetes_cron_job_v1" "vault_backup" {
@@ -45,6 +52,7 @@ resource "kubernetes_cron_job_v1" "vault_backup" {
         template {
           metadata {}
           spec {
+            service_account_name = kubernetes_service_account.backup_cron_job_service_account.metadata.0.name
             container {
               name    = "vault-backup"
               image   = "ghcr.io/EURODEO/femdi-gateway-iac/vault-snapshot:latest"
@@ -53,16 +61,6 @@ resource "kubernetes_cron_job_v1" "vault_backup" {
               env {
                 name  = "VAULT_ADDR"
                 value = "http://vault-active.vault.svc.cluster.local:8200"
-              }
-
-              env {
-                name = "VAULT_TOKEN"
-                value_from {
-                  secret_key_ref {
-                    name = kubernetes_secret.vault_backup_cron_job_secrets.metadata.0.name
-                    key  = "VAULT_TOKEN"
-                  }
-                }
               }
 
               env {

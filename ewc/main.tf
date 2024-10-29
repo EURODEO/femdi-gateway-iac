@@ -561,6 +561,23 @@ resource "vault_jwt_auth_backend" "github" {
   depends_on = [data.kubernetes_resource.vault-pods-after]
 }
 
+resource "vault_auth_backend" "kubernetes" {
+  type        = "kubernetes"
+  description = "Kubernetes auth backend"
+
+  depends_on = [data.kubernetes_resource.vault-pods-after]
+}
+
+resource "vault_kubernetes_auth_backend_config" "k8s_auth_config" {
+  backend = vault_auth_backend.kubernetes.path
+
+  # TODO get this dynamically or from vars etc. Now just to test that things works as expected
+  kubernetes_host = "https://femdi-gateway-dev.eumetnet-femdi.ewc/k8s/clusters/c-glw6r"
+
+  # We can omit CA certificate and token reviewer JWT as we run Vault in k8s pod
+  # https://developer.hashicorp.com/vault/docs/auth/kubernetes#use-local-service-account-token-as-the-reviewer-jwt
+}
+
 resource "vault_policy" "apisix-global" {
   name = "apisix-global"
 
@@ -598,8 +615,8 @@ EOT
   depends_on = [data.kubernetes_resource.vault-pods-after]
 }
 
-resource "vault_policy" "take-snapshot" {
-  name = "take-snapshot"
+resource "vault_policy" "backup-cron-job" {
+  name = "backup-cron-job"
 
   policy = <<EOT
 path "sys/storage/raft/snapshot" {
@@ -624,6 +641,15 @@ resource "vault_jwt_auth_backend_role" "api-management-tool-gha" {
   depends_on      = [data.kubernetes_resource.vault-pods-after]
 }
 
+resource "vault_kubernetes_auth_backend_role" "backup-cron-job" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "backup-cron-job"
+  bound_service_account_names      = ["backup-cron-job"]
+  bound_service_account_namespaces = [kubernetes_namespace.vault.metadata.0.name]
+  token_policies                   = [vault_policy.backup-cron-job.name]
+  token_ttl                        = 300
+}
+
 resource "vault_token" "apisix-global" {
   policies  = [vault_policy.apisix-global]
   period    = "768h"
@@ -636,8 +662,8 @@ resource "vault_token" "dev-portal-global" {
 }
 
 resource "vault_token" "snapshot" {
-  policies = [vault_policy.take-snapshot.name]
-  period = "768h"
+  policies  = [vault_policy.take-snapshot.name]
+  period    = "768h"
   renewable = true
 }
 

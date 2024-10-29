@@ -2,7 +2,6 @@
 
 # Variables
 VAULT_ADDR=${VAULT_ADDR}
-VAULT_TOKEN=${VAULT_TOKEN}
 S3_BUCKET=${S3_BUCKET}
 AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
 AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
@@ -36,6 +35,14 @@ if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
   echo "Error: AWS_SECRET_ACCESS_KEY is not set."
   exit 1
 fi
+
+# Retrieve the provided service account token
+SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+
+# Authenticate with Vault using the Kubernetes auth method to obtain a Vault token
+VAULT_TOKEN=$(vault write -field=token auth/kubernetes/login \
+  role=backup-cron-job \
+  jwt=$SA_TOKEN)
 
 # Generate ISO 8601 compliant timestamp
 # (needed to use sed as couldn't make it work with '%:z' in date command)
