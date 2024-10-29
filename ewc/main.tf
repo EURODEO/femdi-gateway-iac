@@ -644,7 +644,7 @@ resource "vault_jwt_auth_backend_role" "api-management-tool-gha" {
 resource "vault_kubernetes_auth_backend_role" "backup-cron-job" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "backup-cron-job"
-  bound_service_account_names      = ["backup-cron-job"]
+  bound_service_account_names      = [kubernetes_service_account.backup_cron_job_service_account.metadata.0.name]
   bound_service_account_namespaces = [kubernetes_namespace.vault.metadata.0.name]
   token_policies                   = [vault_policy.backup-cron-job.name]
   token_ttl                        = 300
