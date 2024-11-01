@@ -561,6 +561,25 @@ resource "vault_jwt_auth_backend" "github" {
   depends_on = [data.kubernetes_resource.vault-pods-after]
 }
 
+resource "vault_auth_backend" "kubernetes" {
+  type        = "kubernetes"
+  description = "Kubernetes auth backend"
+
+  depends_on = [data.kubernetes_resource.vault-pods-after]
+}
+
+resource "vault_kubernetes_auth_backend_config" "k8s_auth_config" {
+  backend = vault_auth_backend.kubernetes.path
+
+  # Use the internal Kubernetes API server URL for communication within the cluster.
+  # This URL is automatically resolved by the Kubernetes DNS service to the internal IP address of the Kubernetes API server.
+  kubernetes_host = "https://kubernetes.default.svc.cluster.local"
+
+  # We can omit rest of params, e.g. CA certificate and token reviewer JWT as long as 
+  # Vault and calling service are run in same k8s cluster
+  # https://developer.hashicorp.com/vault/docs/auth/kubernetes#use-local-service-account-token-as-the-reviewer-jwt
+}
+
 resource "vault_policy" "apisix-global" {
   name = "apisix-global"
 
@@ -598,6 +617,18 @@ EOT
   depends_on = [data.kubernetes_resource.vault-pods-after]
 }
 
+resource "vault_policy" "backup-cron-job" {
+  name = "backup-cron-job"
+
+  policy = <<EOT
+path "sys/storage/raft/snapshot" {
+  capabilities = ["read"]
+}
+EOT
+
+  depends_on = [data.kubernetes_resource.vault-pods-after]
+}
+
 resource "vault_jwt_auth_backend_role" "api-management-tool-gha" {
   role_name  = "api-management-tool-gha"
   backend    = vault_jwt_auth_backend.github.path
@@ -610,6 +641,15 @@ resource "vault_jwt_auth_backend_role" "api-management-tool-gha" {
   token_policies  = [vault_policy.api-management-tool-gha.name]
   token_ttl       = 300
   depends_on      = [data.kubernetes_resource.vault-pods-after]
+}
+
+resource "vault_kubernetes_auth_backend_role" "backup-cron-job" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "backup-cron-job"
+  bound_service_account_names      = [kubernetes_service_account.backup_cron_job_service_account.metadata.0.name]
+  bound_service_account_namespaces = [kubernetes_namespace.vault.metadata.0.name]
+  token_policies                   = [vault_policy.backup-cron-job.name]
+  token_ttl                        = 300
 }
 
 resource "vault_token" "apisix-global" {
