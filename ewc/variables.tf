@@ -100,7 +100,7 @@ variable "keycloak_subdomain" {
 variable "vault_subdomain" {
   description = "subdomain where vault will be hosted"
   type        = string
-  default     = "vault"
+  default     = "vault-jani"
 }
 
 variable "vault_replicas" {
@@ -135,10 +135,10 @@ variable "dev-portal_registry_password" {
   sensitive   = true
 }
 
-variable "vault_backup_bucket_base_uri" {
-  description = "AWS S3 bucket base URI for vault backups"
+variable "vault_backup_bucket_base_path" {
+  description = "AWS S3 bucket base path for vault backup files"
   type        = string
-  default     = "s3://dev-rodeo-ewc-vault/vault/"
+  default     = "dev-rodeo-ewc-vault/vault/"
 }
 
 variable "s3_bucket_access_key" {

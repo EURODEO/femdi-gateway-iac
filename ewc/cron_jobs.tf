@@ -38,34 +38,35 @@ resource "kubernetes_cron_job_v1" "vault_backup" {
 
   spec {
     concurrency_policy            = "Replace"
-    failed_jobs_history_limit     = 3
+    failed_jobs_history_limit     = 3 # Keep the latest 3 failed jobs
     schedule                      = "1 0 * * *"
     timezone                      = "Etc/UTC"
-    starting_deadline_seconds     = 10
-    successful_jobs_history_limit = 3
+    starting_deadline_seconds     = 43200 # 12 hours
+    successful_jobs_history_limit = 1 # Keep the latest
 
     job_template {
       metadata {}
       spec {
-        backoff_limit              = 3
-        ttl_seconds_after_finished = 10
+        backoff_limit              = 6 # This the default value
         template {
           metadata {}
           spec {
             service_account_name = kubernetes_service_account.backup_cron_job_service_account.metadata.0.name
+            restart_policy = "OnFailure"
             container {
               name    = "vault-backup"
-              image   = "ghcr.io/EURODEO/femdi-gateway-iac/vault-snapshot:latest"
+              image   = "ghcr.io/eurodeo/femdi-gateway-iac/vault-snapshot:latest"
+              image_pull_policy = "Always" # TODO change to IfNotPresent once tested out to be working
               command = ["/bin/sh", "-c", "/usr/local/bin/vault-snapshot.sh"]
 
               env {
                 name  = "VAULT_ADDR"
-                value = "http://vault-active.vault.svc.cluster.local:8200"
+                value = "http://vault-jani-active.vault-jani.svc.cluster.local:8200"
               }
 
               env {
-                name  = "S3_BUCKET"
-                value = var.vault_backup_bucket_base_uri
+                name  = "S3_BUCKET_BASE_PATH"
+                value = var.vault_backup_bucket_base_path
               }
 
               env {

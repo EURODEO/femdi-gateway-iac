@@ -45,356 +45,356 @@ data "rancher2_project" "System" {
 ################################################################################
 # Install openstack-cinder-csi Plugin under System project
 ################################################################################
-resource "kubernetes_namespace" "openstack-cinder-csi" {
-  metadata {
-    annotations = {
-      "field.cattle.io/projectId" = data.rancher2_project.System.id
-    }
-
-    name = "openstack-cinder-csi"
-  }
-}
-resource "helm_release" "csi-cinder" {
-  name             = "openstack-cinder-csi"
-  repository       = "https://kubernetes.github.io/cloud-provider-openstack"
-  chart            = "openstack-cinder-csi"
-  version          = "2.30.0"
-  namespace        = kubernetes_namespace.openstack-cinder-csi.metadata.0.name
-  create_namespace = false
-
-  set {
-    name  = "storageClass.delete.isDefault"
-    value = true
-  }
-
-  set {
-    name  = "secret.filename"
-    value = "cloud-config"
-  }
-}
+#resource "kubernetes_namespace" "openstack-cinder-csi" {
+#  metadata {
+#    annotations = {
+#      "field.cattle.io/projectId" = data.rancher2_project.System.id
+#    }
+#
+#    name = "openstack-cinder-csi"
+#  }
+#}
+#resource "helm_release" "csi-cinder" {
+#  name             = "openstack-cinder-csi"
+#  repository       = "https://kubernetes.github.io/cloud-provider-openstack"
+#  chart            = "openstack-cinder-csi"
+#  version          = "2.30.0"
+#  namespace        = kubernetes_namespace.openstack-cinder-csi.metadata.0.name
+#  create_namespace = false
+#
+#  set {
+#    name  = "storageClass.delete.isDefault"
+#    value = true
+#  }
+#
+#  set {
+#    name  = "secret.filename"
+#    value = "cloud-config"
+#  }
+#}
 
 ################################################################################
 # Install ingress-nginx under System project
 ################################################################################
-resource "kubernetes_namespace" "ingress-nginx" {
-  metadata {
-    annotations = {
-      "field.cattle.io/projectId" = data.rancher2_project.System.id
-    }
-
-    name = "ingress-nginx"
-  }
-}
-resource "helm_release" "ingress_nginx" {
-  name             = "ingress-nginx"
-  repository       = "https://kubernetes.github.io/ingress-nginx"
-  chart            = "ingress-nginx"
-  version          = "4.7.1"
-  namespace        = kubernetes_namespace.ingress-nginx.metadata.0.name
-  create_namespace = false
-
-  set {
-    name  = "controller.kind"
-    value = "DaemonSet"
-  }
-
-  set {
-    name  = "controller.ingressClassResource.default"
-    value = true
-  }
-
-  # Needed for keycloak to work
-  set {
-    name  = "controller.config.proxy-buffer-size"
-    value = "256k"
-  }
-}
-
-data "kubernetes_service" "ingress-nginx-controller" {
-  metadata {
-    name      = "ingress-nginx-controller"
-    namespace = kubernetes_namespace.ingress-nginx.metadata.0.name
-  }
-
-  depends_on = [helm_release.ingress_nginx]
-}
+#resource "kubernetes_namespace" "ingress-nginx" {
+#  metadata {
+#    annotations = {
+#      "field.cattle.io/projectId" = data.rancher2_project.System.id
+#    }
+#
+#    name = "ingress-nginx"
+#  }
+#}
+#resource "helm_release" "ingress_nginx" {
+#  name             = "ingress-nginx"
+#  repository       = "https://kubernetes.github.io/ingress-nginx"
+#  chart            = "ingress-nginx"
+#  version          = "4.7.1"
+#  namespace        = kubernetes_namespace.ingress-nginx.metadata.0.name
+#  create_namespace = false
+#
+#  set {
+#    name  = "controller.kind"
+#    value = "DaemonSet"
+#  }
+#
+#  set {
+#    name  = "controller.ingressClassResource.default"
+#    value = true
+#  }
+#
+#  # Needed for keycloak to work
+#  set {
+#    name  = "controller.config.proxy-buffer-size"
+#    value = "256k"
+#  }
+#}
+#
+#data "kubernetes_service" "ingress-nginx-controller" {
+#  metadata {
+#    name      = "ingress-nginx-controller"
+#    namespace = kubernetes_namespace.ingress-nginx.metadata.0.name
+#  }
+#
+#  depends_on = [helm_release.ingress_nginx]
+#}
 
 ################################################################################
 # Install external-dns under System project
 ################################################################################
-resource "kubernetes_namespace" "external-dns" {
-  metadata {
-    annotations = {
-      "field.cattle.io/projectId" = data.rancher2_project.System.id
-    }
-
-    name = "external-dns"
-  }
-}
-resource "helm_release" "external-dns" {
-  name             = "external-dns"
-  repository       = "https://charts.bitnami.com/bitnami"
-  chart            = "external-dns"
-  version          = "6.23.6"
-  namespace        = kubernetes_namespace.external-dns.metadata.0.name
-  create_namespace = false
-
-  set {
-    name  = "policy"
-    value = "upsert-only"
-  }
-
-  set {
-    name  = "controller.ingressClassResource.default"
-    value = true
-  }
-
-  set {
-    name  = "aws.credentials.accessKey"
-    value = var.route53_access_key
-
-  }
-
-  set {
-    name  = "aws.credentials.secretKey"
-    value = var.route53_secret_key
-
-  }
-
-  set_list {
-    name  = "zoneIdFilters"
-    value = [var.route53_zone_id_filter]
-  }
-}
+#resource "kubernetes_namespace" "external-dns" {
+#  metadata {
+#    annotations = {
+#      "field.cattle.io/projectId" = data.rancher2_project.System.id
+#    }
+#
+#    name = "external-dns"
+#  }
+#}
+#resource "helm_release" "external-dns" {
+#  name             = "external-dns"
+#  repository       = "https://charts.bitnami.com/bitnami"
+#  chart            = "external-dns"
+#  version          = "6.23.6"
+#  namespace        = kubernetes_namespace.external-dns.metadata.0.name
+#  create_namespace = false
+#
+#  set {
+#    name  = "policy"
+#    value = "upsert-only"
+#  }
+#
+#  set {
+#    name  = "controller.ingressClassResource.default"
+#    value = true
+#  }
+#
+#  set {
+#    name  = "aws.credentials.accessKey"
+#    value = var.route53_access_key
+#
+#  }
+#
+#  set {
+#    name  = "aws.credentials.secretKey"
+#    value = var.route53_secret_key
+#
+#  }
+#
+#  set_list {
+#    name  = "zoneIdFilters"
+#    value = [var.route53_zone_id_filter]
+#  }
+#}
 
 ################################################################################
 # Install cert-manager under System project
 ################################################################################
-resource "kubernetes_namespace" "cert-manager" {
-  metadata {
-    annotations = {
-      "field.cattle.io/projectId" = data.rancher2_project.System.id
-    }
+#resource "kubernetes_namespace" "cert-manager" {
+#  metadata {
+#    annotations = {
+#      "field.cattle.io/projectId" = data.rancher2_project.System.id
+#    }
+#
+#    name = "cert-manager"
+#  }
+#}
+#resource "helm_release" "cert-manager" {
+#  name             = "cert-manager"
+#  repository       = "https://charts.jetstack.io/"
+#  chart            = "cert-manager"
+#  version          = "1.11.5"
+#  namespace        = kubernetes_namespace.cert-manager.metadata.0.name
+#  create_namespace = false
+#
+#  set {
+#    name  = "installCRDs"
+#    value = true
+#  }
+#
+#  set {
+#    name  = "ingressShim.defaultACMEChallengeType"
+#    value = "dns01"
+#  }
+#
+#  set {
+#    name  = "ingressShim.defaultACMEDNS01ChallengeProvider"
+#    value = "route53"
+#  }
+#
+#  set {
+#    name  = "ingressShim.defaultIssuerKind"
+#    value = "ClusterIssuer"
+#  }
+#
+#  set {
+#    name  = "ingressShim.letsencrypt-prod"
+#    value = "route53"
+#  }
+#}
 
-    name = "cert-manager"
-  }
-}
-resource "helm_release" "cert-manager" {
-  name             = "cert-manager"
-  repository       = "https://charts.jetstack.io/"
-  chart            = "cert-manager"
-  version          = "1.11.5"
-  namespace        = kubernetes_namespace.cert-manager.metadata.0.name
-  create_namespace = false
-
-  set {
-    name  = "installCRDs"
-    value = true
-  }
-
-  set {
-    name  = "ingressShim.defaultACMEChallengeType"
-    value = "dns01"
-  }
-
-  set {
-    name  = "ingressShim.defaultACMEDNS01ChallengeProvider"
-    value = "route53"
-  }
-
-  set {
-    name  = "ingressShim.defaultIssuerKind"
-    value = "ClusterIssuer"
-  }
-
-  set {
-    name  = "ingressShim.letsencrypt-prod"
-    value = "route53"
-  }
-}
-
-resource "kubernetes_secret" "acme-route53-secret" {
-  metadata {
-    name      = "acme-route53"
-    namespace = kubernetes_namespace.cert-manager.metadata.0.name
-  }
-
-  data = {
-    secret-access-key = var.route53_secret_key
-  }
-
-  type = "Opaque"
-}
-
-locals {
-  clusterissuer_letsencrypt_prod_manifest = {
-    "apiVersion" = "cert-manager.io/v1"
-    "kind"       = "ClusterIssuer"
-    "metadata" = {
-      "name"      = "letsencrypt-prod"
-      "namespace" = kubernetes_namespace.cert-manager.metadata.0.name
-    }
-    "spec" = {
-      "acme" = {
-        "email" = var.email_cert_manager
-        "privateKeySecretRef" = {
-          "name" = "letsencrypt-prod"
-        }
-        "server" = "https://acme-v02.api.letsencrypt.org/directory"
-        "solvers" = [
-          {
-            "dns01" = {
-              "route53" = {
-                "accessKeyID" = var.route53_access_key
-                "region"      = "eu-central-1"
-                "secretAccessKeySecretRef" = {
-                  "key"  = "secret-access-key"
-                  "name" = kubernetes_secret.acme-route53-secret.metadata.0.name
-                }
-              }
-            }
-            "selector" = {
-              "dnsZones" = [var.dns_zone]
-            }
-          },
-        ]
-      }
-    }
-  }
-}
-
-resource "kubectl_manifest" "clusterissuer_letsencrypt_prod" {
-  yaml_body  = yamlencode(local.clusterissuer_letsencrypt_prod_manifest)
-  depends_on = [helm_release.cert-manager]
-
-}
+#resource "kubernetes_secret" "acme-route53-secret" {
+#  metadata {
+#    name      = "acme-route53"
+#    namespace = kubernetes_namespace.cert-manager.metadata.0.name
+#  }
+#
+#  data = {
+#    secret-access-key = var.route53_secret_key
+#  }
+#
+#  type = "Opaque"
+#}
+#
+#locals {
+#  clusterissuer_letsencrypt_prod_manifest = {
+#    "apiVersion" = "cert-manager.io/v1"
+#    "kind"       = "ClusterIssuer"
+#    "metadata" = {
+#      "name"      = "letsencrypt-prod"
+#      "namespace" = kubernetes_namespace.cert-manager.metadata.0.name
+#    }
+#    "spec" = {
+#      "acme" = {
+#        "email" = var.email_cert_manager
+#        "privateKeySecretRef" = {
+#          "name" = "letsencrypt-prod"
+#        }
+#        "server" = "https://acme-v02.api.letsencrypt.org/directory"
+#        "solvers" = [
+#          {
+#            "dns01" = {
+#              "route53" = {
+#                "accessKeyID" = var.route53_access_key
+#                "region"      = "eu-central-1"
+#                "secretAccessKeySecretRef" = {
+#                  "key"  = "secret-access-key"
+#                  "name" = kubernetes_secret.acme-route53-secret.metadata.0.name
+#                }
+#              }
+#            }
+#            "selector" = {
+#              "dnsZones" = [var.dns_zone]
+#            }
+#          },
+#        ]
+#      }
+#    }
+#  }
+#}
+#
+#resource "kubectl_manifest" "clusterissuer_letsencrypt_prod" {
+#  yaml_body  = yamlencode(local.clusterissuer_letsencrypt_prod_manifest)
+#  depends_on = [helm_release.cert-manager]
+#
+#}
 
 ################################################################################
 # Install gateway apps
 ################################################################################
 # Create project for gateway
 resource "rancher2_project" "gateway" {
-  name       = "gateway"
+  name       = "jani-test-gateway"
   cluster_id = var.rancher_cluster_id
 }
 
 ################################################################################
 # Install Keycloak 
 ################################################################################
-resource "kubernetes_namespace" "keycloak" {
-  metadata {
-    annotations = {
-      "field.cattle.io/projectId" = rancher2_project.gateway.id
-    }
-
-    name = "keycloak"
-  }
-}
-
-# Download realm json
-data "http" "realm-json" {
-  url = "https://raw.githubusercontent.com/EURODEO/Dev-portal/main/keycloak/config/realm_export/realm-export.json"
-}
-
-# Create configmap for realm json
-resource "kubernetes_config_map" "realm-json" {
-  metadata {
-    name      = "realm-json"
-    namespace = kubernetes_namespace.keycloak.metadata.0.name
-  }
-  data = {
-    "realm.json" = data.http.realm-json.response_body
-  }
-}
-
-#TODO: Add HPA
-resource "helm_release" "keycloak" {
-  name             = "keycloak"
-  repository       = "https://charts.bitnami.com/bitnami"
-  chart            = "keycloak"
-  version          = "21.1.2"
-  namespace        = kubernetes_namespace.keycloak.metadata.0.name
-  create_namespace = false
-
-  values = [
-    templatefile("./helm-values/keycloak-values-template.yaml", {
-      cluster_issuer = kubectl_manifest.clusterissuer_letsencrypt_prod.name,
-      hostname       = "${var.keycloak_subdomain}.${var.dns_zone}",
-      ip             = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip,
-    })
-  ]
-
-  # Needed for tls termination at ingress
-  # See: https://github.com/bitnami/charts/tree/main/bitnami/keycloak#use-with-ingress-offloading-ssl
-  set {
-    name  = "proxy"
-    value = "edge"
-  }
-
-  set {
-    name  = "auth.adminUser"
-    value = "admin"
-  }
-
-  set_sensitive {
-    name  = "auth.adminPassword"
-    value = var.keycloak_admin_password
-  }
-
-  # Needed for configmap realm import
-  # See: https://github.com/bitnami/charts/issues/5178#issuecomment-765361901
-  set {
-    name  = "extraStartupArgs"
-    value = "--import-realm"
-
-  }
-
-  set {
-    name  = "extraVolumeMounts[0].name"
-    value = "config"
-
-  }
-
-  set {
-    name  = "extraVolumeMounts[0].mountPath"
-    value = "/opt/bitnami/keycloak/data/import"
-
-  }
-
-  set {
-    name  = "extraVolumeMounts[0].readOnly"
-    value = true
-
-  }
-
-  set {
-    name  = "extraVolumes[0].name"
-    value = "config"
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.name"
-    value = kubernetes_config_map.realm-json.metadata[0].name
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.items[0].key"
-    value = "realm.json"
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.items[0].path"
-    value = "realm.json"
-
-  }
-
-  depends_on = [helm_release.cert-manager, helm_release.external-dns,
-  helm_release.ingress_nginx, helm_release.csi-cinder]
-
-}
+#resource "kubernetes_namespace" "keycloak" {
+#  metadata {
+#    annotations = {
+#      "field.cattle.io/projectId" = rancher2_project.gateway.id
+#    }
+#
+#    name = "keycloak"
+#  }
+#}
+#
+## Download realm json
+#data "http" "realm-json" {
+#  url = "https://raw.githubusercontent.com/EURODEO/Dev-portal/main/keycloak/config/realm_export/realm-export.json"
+#}
+#
+## Create configmap for realm json
+#resource "kubernetes_config_map" "realm-json" {
+#  metadata {
+#    name      = "realm-json"
+#    namespace = kubernetes_namespace.keycloak.metadata.0.name
+#  }
+#  data = {
+#    "realm.json" = data.http.realm-json.response_body
+#  }
+#}
+#
+##TODO: Add HPA
+#resource "helm_release" "keycloak" {
+#  name             = "keycloak"
+#  repository       = "https://charts.bitnami.com/bitnami"
+#  chart            = "keycloak"
+#  version          = "21.1.2"
+#  namespace        = kubernetes_namespace.keycloak.metadata.0.name
+#  create_namespace = false
+#
+#  values = [
+#    templatefile("./helm-values/keycloak-values-template.yaml", {
+#      cluster_issuer = kubectl_manifest.clusterissuer_letsencrypt_prod.name,
+#      hostname       = "${var.keycloak_subdomain}.${var.dns_zone}",
+#      ip             = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip,
+#    })
+#  ]
+#
+#  # Needed for tls termination at ingress
+#  # See: https://github.com/bitnami/charts/tree/main/bitnami/keycloak#use-with-ingress-offloading-ssl
+#  set {
+#    name  = "proxy"
+#    value = "edge"
+#  }
+#
+#  set {
+#    name  = "auth.adminUser"
+#    value = "admin"
+#  }
+#
+#  set_sensitive {
+#    name  = "auth.adminPassword"
+#    value = var.keycloak_admin_password
+#  }
+#
+#  # Needed for configmap realm import
+#  # See: https://github.com/bitnami/charts/issues/5178#issuecomment-765361901
+#  set {
+#    name  = "extraStartupArgs"
+#    value = "--import-realm"
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumeMounts[0].name"
+#    value = "config"
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumeMounts[0].mountPath"
+#    value = "/opt/bitnami/keycloak/data/import"
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumeMounts[0].readOnly"
+#    value = true
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumes[0].name"
+#    value = "config"
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumes[0].configMap.name"
+#    value = kubernetes_config_map.realm-json.metadata[0].name
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumes[0].configMap.items[0].key"
+#    value = "realm.json"
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumes[0].configMap.items[0].path"
+#    value = "realm.json"
+#
+#  }
+#
+#  depends_on = [helm_release.cert-manager, helm_release.external-dns,
+#  helm_release.ingress_nginx, helm_release.csi-cinder]
+#
+#}
 
 
 
@@ -407,7 +407,7 @@ resource "kubernetes_namespace" "vault" {
       "field.cattle.io/projectId" = rancher2_project.gateway.id
     }
 
-    name = "vault"
+    name = "vault-jani"
   }
 }
 
@@ -457,16 +457,16 @@ locals {
 
 resource "kubectl_manifest" "vault-issuer" {
   yaml_body  = yamlencode(local.vault_issuer_manifest)
-  depends_on = [helm_release.cert-manager]
+  #depends_on = [helm_release.cert-manager]
 }
 
 resource "kubectl_manifest" "vault-certificates" {
   yaml_body  = yamlencode(local.vault_certificate_manifest)
-  depends_on = [helm_release.cert-manager, kubectl_manifest.vault-issuer]
+  #depends_on = [helm_release.cert-manager, kubectl_manifest.vault-issuer]
 }
 
 resource "helm_release" "vault" {
-  name             = "vault"
+  name             = "vault-jani"
   repository       = "https://helm.releases.hashicorp.com"
   chart            = "vault"
   version          = "0.28.0"
@@ -475,9 +475,9 @@ resource "helm_release" "vault" {
 
   values = [
     templatefile("./helm-values/vault-values-template.yaml", {
-      cluster_issuer           = kubectl_manifest.clusterissuer_letsencrypt_prod.name,
+      cluster_issuer           = "letsencrypt-prod",
       hostname                 = "${var.vault_subdomain}.${var.dns_zone}",
-      ip                       = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip,
+      ip                       = "185.254.223.140",
       vault_certificate_secret = local.vault_certificate_secret
       replicas                 = var.vault_replicas
       replicas_iterator        = range(var.vault_replicas)
@@ -485,8 +485,8 @@ resource "helm_release" "vault" {
   ]
 
 
-  depends_on = [helm_release.cert-manager, helm_release.external-dns,
-  helm_release.ingress_nginx, helm_release.csi-cinder]
+  #depends_on = [helm_release.cert-manager, helm_release.external-dns,
+  #helm_release.ingress_nginx, helm_release.csi-cinder]
 
 }
 
@@ -503,7 +503,7 @@ data "kubernetes_resource" "vault-pods-before" {
   kind        = "Pod"
 
   metadata {
-    name      = "vault-${count.index}"
+    name      = "vault-jani-${count.index}"
     namespace = kubernetes_namespace.vault.metadata.0.name
   }
 
@@ -536,7 +536,7 @@ data "kubernetes_resource" "vault-pods-after" {
   kind        = "Pod"
 
   metadata {
-    name      = "vault-${count.index}"
+    name      = "vault-jani-${count.index}"
     namespace = kubernetes_namespace.vault.metadata.0.name
   }
 
@@ -571,10 +571,12 @@ resource "vault_auth_backend" "kubernetes" {
 resource "vault_kubernetes_auth_backend_config" "k8s_auth_config" {
   backend = vault_auth_backend.kubernetes.path
 
-  # TODO get this dynamically or from vars etc. Now just to test that things works as expected
-  kubernetes_host = "https://femdi-gateway-dev.eumetnet-femdi.ewc/k8s/clusters/c-glw6r"
+  # Use the internal Kubernetes API server URL for communication within the cluster.
+  # This URL is automatically resolved by the Kubernetes DNS service to the internal IP address of the Kubernetes API server.
+  kubernetes_host = "https://kubernetes.default.svc.cluster.local"
 
-  # We can omit CA certificate and token reviewer JWT as we run Vault in k8s pod
+  # We can omit rest of params, e.g. CA certificate and token reviewer JWT as long as 
+  # Vault and calling service are run in same k8s cluster
   # https://developer.hashicorp.com/vault/docs/auth/kubernetes#use-local-service-account-token-as-the-reviewer-jwt
 }
 
@@ -651,18 +653,12 @@ resource "vault_kubernetes_auth_backend_role" "backup-cron-job" {
 }
 
 resource "vault_token" "apisix-global" {
-  policies  = [vault_policy.apisix-global]
+  policies  = [vault_policy.apisix-global.name]
   period    = "768h"
   renewable = true
 }
 resource "vault_token" "dev-portal-global" {
-  policies  = [vault_policy.dev-portal-global]
-  period    = "768h"
-  renewable = true
-}
-
-resource "vault_token" "snapshot" {
-  policies  = [vault_policy.take-snapshot.name]
+  policies  = [vault_policy.dev-portal-global.name]
   period    = "768h"
   renewable = true
 }
@@ -671,277 +667,278 @@ resource "vault_token" "snapshot" {
 
 # Install Apisix
 ################################################################################
-resource "kubernetes_namespace" "apisix" {
-  metadata {
-    annotations = {
-      "field.cattle.io/projectId" = rancher2_project.gateway.id
-    }
-
-    name = "apisix"
-  }
-}
-
-# ConfigMap for custom error pages
-resource "kubernetes_config_map" "custom_error_pages" {
-  metadata {
-    name      = "custom-error-pages"
-    namespace = kubernetes_namespace.apisix.metadata.0.name
-  }
-  data = {
-    "apisix_error_429.html" = templatefile("../apisix/error_pages/apisix_error_429.html", {
-      devportal_address = "${var.dev-portal_subdomain}.${var.dns_zone}"
-    })
-    "apisix_error_403.html" = templatefile("../apisix/error_pages/apisix_error_403.html", {
-      devportal_address = "${var.dev-portal_subdomain}.${var.dns_zone}"
-    })
-  }
-}
-
-resource "helm_release" "apisix" {
-  name             = "apisix"
-  repository       = "https://charts.apiseven.com"
-  chart            = "apisix"
-  version          = "2.6.0"
-  namespace        = kubernetes_namespace.apisix.metadata.0.name
-  create_namespace = false
-
-  values = [
-    templatefile("./helm-values/apisix-values-template.yaml", {
-      cluster_issuer = kubectl_manifest.clusterissuer_letsencrypt_prod.name,
-      hostname       = "${var.apisix_subdomain}.${var.dns_zone}",
-      ip             = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip
-    })
-  ]
-
-  set_sensitive {
-    name  = "apisix.admin.credentials.admin"
-    value = var.apisix_admin
-  }
-
-  set_sensitive {
-    name  = "apisix.admin.credentials.viewer"
-    value = var.apisix_reader
-  }
-
-  set_list {
-    name  = "apisix.admin.allow.ipList"
-    value = var.apisix_ip_list
-  }
-
-  # Apisix vault integration
-  set {
-    name  = "apisix.vault.enabled"
-    value = true
-  }
-
-  set {
-    name  = "apisix.vault.host"
-    value = "http://vault-active.vault.svc.cluster.local:8200"
-  }
-
-  set {
-    name  = "apisix.vault.prefix"
-    value = "apisix-dev/consumers"
-  }
-
-  set_sensitive {
-    name  = "apisix.vault.token"
-    value = vault_token.apisix-global.client_token
-  }
-
-  # Custom error pages mount
-  set {
-    name  = "extraVolumeMounts[0].name"
-    value = "custom-error-pages"
-
-  }
-
-  set {
-    name  = "extraVolumeMounts[0].mountPath"
-    value = "/custom/error-pages"
-
-  }
-
-  set {
-    name  = "extraVolumeMounts[0].readOnly"
-    value = true
-
-  }
-
-  set {
-    name  = "extraVolumes[0].name"
-    value = "custom-error-pages"
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.name"
-    value = kubernetes_config_map.custom_error_pages.metadata[0].name
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.items[0].key"
-    value = "apisix_error_403.html"
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.items[0].path"
-    value = "apisix_error_403.html"
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.items[1].key"
-    value = "apisix_error_429.html"
-
-  }
-
-  set {
-    name  = "extraVolumes[0].configMap.items[1].path"
-    value = "apisix_error_429.html"
-
-  }
-
-  #Custom error page nginx.conf
-  set {
-    name  = "apisix.nginx.configurationSnippet.httpStart"
-    value = file("../apisix/error_values/httpStart")
-  }
-
-  set {
-    name  = "apisix.nginx.configurationSnippet.httpSrv"
-    value = file("../apisix/error_values/httpSrv")
-  }
-
-  # Trust container's CA for Vault and other outbound CA requests
-  set {
-    name  = "apisix.nginx.configurationSnippet.httpEnd"
-    value = "lua_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;"
-
-  }
-
-  depends_on = [helm_release.cert-manager, helm_release.external-dns,
-  helm_release.ingress_nginx, helm_release.csi-cinder]
-
-}
-
-################################################################################
-
-# Install Dev-portal
-################################################################################
-resource "kubernetes_namespace" "dev-portal" {
-  metadata {
-    annotations = {
-      "field.cattle.io/projectId" = rancher2_project.gateway.id
-    }
-
-    name = "dev-portal"
-  }
-}
-
-resource "random_string" "random" {
-  length = 32
-}
-
-# Create Secret for credentials
-resource "kubernetes_secret" "dev-portal-secret-for-backend" {
-  metadata {
-    name      = "dev-portal-secret-for-backend"
-    namespace = kubernetes_namespace.dev-portal.metadata.0.name
-  }
-
-  data = {
-    "secrets.yaml" = yamlencode({
-
-      "vault" = {
-        "url"          = "http://vault-active.vault.svc.cluster.local:8200"
-        "token"        = vault_token.dev-portal-global
-        "base_path"    = "apisix-dev/consumers"
-        "secret_phase" = random_string.random.result
-      }
-
-      "apisix" = {
-        "key_path" = "$secret:/vault/1"
-        "instances" = [
-          {
-            "name"          = "EWC"
-            "admin_url"     = "http://apisix-admin.apisix.svc.cluster.local:9180"
-            "gateway_url"   = "https://${var.apisix_subdomain}.${var.dns_zone}"
-            "admin_api_key" = var.apisix_admin
-          }
-        ]
-      }
-      "keycloak" = {
-        "url"           = "http://keycloak.keycloak.svc.cluster.local"
-        "realm"         = "test"
-        "client_id"     = "dev-portal-api"
-        "client_secret" = ""
-      }
-    })
-  }
-
-  type = "Opaque"
-}
-
-resource "helm_release" "dev-portal" {
-  name             = "dev-portal"
-  repository       = "https://rodeo-project.eu/Dev-portal/"
-  chart            = "dev-portal"
-  version          = "1.10.2"
-  namespace        = kubernetes_namespace.dev-portal.metadata.0.name
-  create_namespace = false
-
-  values = [
-    templatefile("./helm-values/dev-portal-values-template.yaml", {
-      cluster_issuer = kubectl_manifest.clusterissuer_letsencrypt_prod.name,
-      hostname       = "${var.dev-portal_subdomain}.${var.dns_zone}",
-      ip             = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip
-    })
-  ]
-
-  set {
-    name  = "imageCredentials.username"
-    value = "USERNAME"
-  }
-
-  set_sensitive {
-    name  = "imageCredentials.password"
-    value = var.dev-portal_registry_password
-  }
-
-  set {
-    name  = "backend.image.tag"
-    value = "sha-e5fe5f5"
-  }
-
-  set {
-    name  = "backend.secrets.secretName"
-    value = kubernetes_secret.dev-portal-secret-for-backend.metadata.0.name
-  }
-
-  set {
-    name  = "backend.secrets.secretName"
-    value = kubernetes_secret.dev-portal-secret-for-backend.metadata.0.name
-  }
-
-  set {
-    name  = "frontend.image.tag"
-    value = "sha-5608cd2"
-  }
-
-  set {
-    name  = "frontend.keycloak_logout_url"
-    value = "https://${var.dev-portal_subdomain}.${var.dns_zone}"
-  }
-
-  set {
-    name  = "keycloak_url"
-    value = "https://${var.keycloak_subdomain}.${var.dns_zone}"
-  }
-  depends_on = [helm_release.cert-manager, helm_release.external-dns,
-    helm_release.ingress_nginx, helm_release.csi-cinder, helm_release.apisix
-  , helm_release.keycloak]
-
-}
+#resource "kubernetes_namespace" "apisix" {
+#  metadata {
+#    annotations = {
+#      "field.cattle.io/projectId" = rancher2_project.gateway.id
+#    }
+#
+#    name = "apisix"
+#  }
+#}
+#
+## ConfigMap for custom error pages
+#resource "kubernetes_config_map" "custom_error_pages" {
+#  metadata {
+#    name      = "custom-error-pages"
+#    namespace = kubernetes_namespace.apisix.metadata.0.name
+#  }
+#  data = {
+#    "apisix_error_429.html" = templatefile("../apisix/error_pages/apisix_error_429.html", {
+#      devportal_address = "${var.dev-portal_subdomain}.${var.dns_zone}"
+#    })
+#    "apisix_error_403.html" = templatefile("../apisix/error_pages/apisix_error_403.html", {
+#      devportal_address = "${var.dev-portal_subdomain}.${var.dns_zone}"
+#    })
+#  }
+#}
+#
+#resource "helm_release" "apisix" {
+#  name             = "apisix"
+#  repository       = "https://charts.apiseven.com"
+#  chart            = "apisix"
+#  version          = "2.6.0"
+#  namespace        = kubernetes_namespace.apisix.metadata.0.name
+#  create_namespace = false
+#
+#  values = [
+#    templatefile("./helm-values/apisix-values-template.yaml", {
+#      cluster_issuer = kubectl_manifest.clusterissuer_letsencrypt_prod.name,
+#      hostname       = "${var.apisix_subdomain}.${var.dns_zone}",
+#      ip             = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip
+#    })
+#  ]
+#
+#  set_sensitive {
+#    name  = "apisix.admin.credentials.admin"
+#    value = var.apisix_admin
+#  }
+#
+#  set_sensitive {
+#    name  = "apisix.admin.credentials.viewer"
+#    value = var.apisix_reader
+#  }
+#
+#  set_list {
+#    name  = "apisix.admin.allow.ipList"
+#    value = var.apisix_ip_list
+#  }
+#
+#  # Apisix vault integration
+#  set {
+#    name  = "apisix.vault.enabled"
+#    value = true
+#  }
+#
+#  set {
+#    name  = "apisix.vault.host"
+#    value = "http://vault-active.vault.svc.cluster.local:8200"
+#  }
+#
+#  set {
+#    name  = "apisix.vault.prefix"
+#    value = "apisix-dev/consumers"
+#  }
+#
+#  set_sensitive {
+#    name  = "apisix.vault.token"
+#    value = vault_token.apisix-global.client_token
+#  }
+#
+#  # Custom error pages mount
+#  set {
+#    name  = "extraVolumeMounts[0].name"
+#    value = "custom-error-pages"
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumeMounts[0].mountPath"
+#    value = "/custom/error-pages"
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumeMounts[0].readOnly"
+#    value = true
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumes[0].name"
+#    value = "custom-error-pages"
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumes[0].configMap.name"
+#    value = kubernetes_config_map.custom_error_pages.metadata[0].name
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumes[0].configMap.items[0].key"
+#    value = "apisix_error_403.html"
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumes[0].configMap.items[0].path"
+#    value = "apisix_error_403.html"
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumes[0].configMap.items[1].key"
+#    value = "apisix_error_429.html"
+#
+#  }
+#
+#  set {
+#    name  = "extraVolumes[0].configMap.items[1].path"
+#    value = "apisix_error_429.html"
+#
+#  }
+#
+#  #Custom error page nginx.conf
+#  set {
+#    name  = "apisix.nginx.configurationSnippet.httpStart"
+#    value = file("../apisix/error_values/httpStart")
+#  }
+#
+#  set {
+#    name  = "apisix.nginx.configurationSnippet.httpSrv"
+#    value = file("../apisix/error_values/httpSrv")
+#  }
+#
+#  # Trust container's CA for Vault and other outbound CA requests
+#  set {
+#    name  = "apisix.nginx.configurationSnippet.httpEnd"
+#    value = "lua_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;"
+#
+#  }
+#
+#  depends_on = [helm_release.cert-manager, helm_release.external-dns,
+#  helm_release.ingress_nginx, helm_release.csi-cinder]
+#
+#}
+#
+#################################################################################
+#
+## Install Dev-portal
+#################################################################################
+#resource "kubernetes_namespace" "dev-portal" {
+#  metadata {
+#    annotations = {
+#      "field.cattle.io/projectId" = rancher2_project.gateway.id
+#    }
+#
+#    name = "dev-portal"
+#  }
+#}
+#
+#resource "random_string" "random" {
+#  length = 32
+#}
+#
+## Create Secret for credentials
+#resource "kubernetes_secret" "dev-portal-secret-for-backend" {
+#  metadata {
+#    name      = "dev-portal-secret-for-backend"
+#    namespace = kubernetes_namespace.dev-portal.metadata.0.name
+#  }
+#
+#  data = {
+#    "secrets.yaml" = yamlencode({
+#
+#      "vault" = {
+#        "url"          = "http://vault-active.vault.svc.cluster.local:8200"
+#        "token"        = vault_token.dev-portal-global
+#        "base_path"    = "apisix-dev/consumers"
+#        "secret_phase" = random_string.random.result
+#      }
+#
+#      "apisix" = {
+#        "key_path" = "$secret:/vault/1"
+#        "instances" = [
+#          {
+#            "name"          = "EWC"
+#            "admin_url"     = "http://apisix-admin.apisix.svc.cluster.local:9180"
+#            "gateway_url"   = "https://${var.apisix_subdomain}.${var.dns_zone}"
+#            "admin_api_key" = var.apisix_admin
+#          }
+#        ]
+#      }
+#      "keycloak" = {
+#        "url"           = "http://keycloak.keycloak.svc.cluster.local"
+#        "realm"         = "test"
+#        "client_id"     = "dev-portal-api"
+#        "client_secret" = ""
+#      }
+#    })
+#  }
+#
+#  type = "Opaque"
+#}
+#
+#resource "helm_release" "dev-portal" {
+#  name             = "dev-portal"
+#  repository       = "https://rodeo-project.eu/Dev-portal/"
+#  chart            = "dev-portal"
+#  version          = "1.10.2"
+#  namespace        = kubernetes_namespace.dev-portal.metadata.0.name
+#  create_namespace = false
+#
+#  values = [
+#    templatefile("./helm-values/dev-portal-values-template.yaml", {
+#      cluster_issuer = kubectl_manifest.clusterissuer_letsencrypt_prod.name,
+#      hostname       = "${var.dev-portal_subdomain}.${var.dns_zone}",
+#      ip             = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip
+#    })
+#  ]
+#
+#  set {
+#    name  = "imageCredentials.username"
+#    value = "USERNAME"
+#  }
+#
+#  set_sensitive {
+#    name  = "imageCredentials.password"
+#    value = var.dev-portal_registry_password
+#  }
+#
+#  set {
+#    name  = "backend.image.tag"
+#    value = "sha-e5fe5f5"
+#  }
+#
+#  set {
+#    name  = "backend.secrets.secretName"
+#    value = kubernetes_secret.dev-portal-secret-for-backend.metadata.0.name
+#  }
+#
+#  set {
+#    name  = "backend.secrets.secretName"
+#    value = kubernetes_secret.dev-portal-secret-for-backend.metadata.0.name
+#  }
+#
+#  set {
+#    name  = "frontend.image.tag"
+#    value = "sha-5608cd2"
+#  }
+#
+#  set {
+#    name  = "frontend.keycloak_logout_url"
+#    value = "https://${var.dev-portal_subdomain}.${var.dns_zone}"
+#  }
+#
+#  set {
+#    name  = "keycloak_url"
+#    value = "https://${var.keycloak_subdomain}.${var.dns_zone}"
+#  }
+#  depends_on = [helm_release.cert-manager, helm_release.external-dns,
+#    helm_release.ingress_nginx, helm_release.csi-cinder, helm_release.apisix
+#  , helm_release.keycloak]
+#
+#}
+#

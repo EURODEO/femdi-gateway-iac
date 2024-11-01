@@ -1,7 +1,7 @@
-output "load_balancer_ip" {
-  description = "Ip of load balancer created by nginx-ingress-controller"
-  value       = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip
-}
+#output "load_balancer_ip" {
+#  description = "Ip of load balancer created by nginx-ingress-controller"
+#  value       = data.kubernetes_service.ingress-nginx-controller.status[0].load_balancer[0].ingress[0].ip
+#}
 
 output "vault_pod_ready_statuses_before_init" {
   description = "Vault cluster status before running init. If this array is true you should have unseal and root token in a previus run"
@@ -33,3 +33,4 @@ output "vault_pod_ready_statuses_after_init" {
     ]
   ])
 }
+

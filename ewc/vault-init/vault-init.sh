@@ -5,7 +5,7 @@ NAMESPACE=$2
 REPLICA_STATUS=($3)
 KEY_TRESHOLD=$4
 
-INPUT=$(kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$NAMESPACE" exec vault-0 -- \
+INPUT=$(kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$NAMESPACE" exec vault-jani-0 -- \
   vault operator init -t $KEY_TRESHOLD -format=json 2>&1)
 
 if jq -e . > /dev/null 2>&1 <<<"$INPUT"; 
@@ -17,7 +17,7 @@ then
       for (( i=0; i<$KEY_TRESHOLD; i++ ))
       do
         kubectl --kubeconfig "$KUBECONFIG_PATH"  -n "$NAMESPACE" \
-          exec vault-"$replica_index" -- \
+          exec vault-jani-"$replica_index" -- \
           vault operator unseal "$(jq -r ".unseal_keys_b64["$i"]" <<< $INPUT)" > /dev/null
       done
     # Sleep for raft auto join
