@@ -134,3 +134,21 @@ variable "dev-portal_registry_password" {
   default     = "devportal"
   sensitive   = true
 }
+
+variable "vault_backup_bucket_base_path" {
+  description = "AWS S3 bucket base path for vault backup files"
+  type        = string
+  default     = "dev-rodeo-ewc-vault/vault/"
+}
+
+variable "s3_bucket_access_key" {
+  description = "AWS access key for S3 bucket"
+  type        = string
+  sensitive   = true
+}
+
+variable "s3_bucket_secret_key" {
+  description = "AWS secret key for S3 bucket"
+  type        = string
+  sensitive   = true
+}
