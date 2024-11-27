@@ -55,6 +55,10 @@ module "ewc-vault-init" {
 
 }
 
+locals {
+  vault_host = "http://vault-active.vault.svc.cluster.local:8200"
+}
+
 ################################################################################
 # Install gateway apps
 ################################################################################
@@ -203,6 +207,25 @@ resource "vault_jwt_auth_backend" "github" {
   depends_on = [module.ewc-vault-init]
 }
 
+resource "vault_auth_backend" "kubernetes" {
+  type        = "kubernetes"
+  description = "Kubernetes auth backend"
+
+  depends_on = [module.ewc-vault-init]
+}
+
+resource "vault_kubernetes_auth_backend_config" "k8s_auth_config" {
+  backend = vault_auth_backend.kubernetes.path
+
+  # Use the internal Kubernetes API server URL for communication within the cluster.
+  # This URL is automatically resolved by the Kubernetes DNS service to the internal IP address of the Kubernetes API server.
+  kubernetes_host = "https://kubernetes.default.svc.cluster.local"
+
+  # We can omit rest of params, e.g. CA certificate and token reviewer JWT as long as 
+  # Vault and calling service are run in same k8s cluster
+  # https://developer.hashicorp.com/vault/docs/auth/kubernetes#use-local-service-account-token-as-the-reviewer-jwt
+}
+
 resource "vault_policy" "apisix-global" {
   name = "apisix-global"
 
@@ -240,6 +263,18 @@ EOT
   depends_on = [module.ewc-vault-init]
 }
 
+resource "vault_policy" "backup-cron-job" {
+  name = "backup-cron-job"
+
+  policy = <<EOT
+path "sys/storage/raft/snapshot" {
+  capabilities = ["read"]
+}
+EOT
+
+  depends_on = [module.ewc-vault-init]
+}
+
 resource "vault_jwt_auth_backend_role" "api-management-tool-gha" {
   role_name  = "api-management-tool-gha"
   backend    = vault_jwt_auth_backend.github.path
@@ -251,6 +286,17 @@ resource "vault_jwt_auth_backend_role" "api-management-tool-gha" {
   bound_audiences = ["https://github.com/EURODEO/api-management-tool-poc"]
   token_policies  = [vault_policy.api-management-tool-gha.name]
   token_ttl       = 300
+
+  depends_on = [module.ewc-vault-init]
+}
+
+resource "vault_kubernetes_auth_backend_role" "backup-cron-job" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "backup-cron-job"
+  bound_service_account_names      = [kubernetes_service_account.backup_cron_job_service_account.metadata.0.name]
+  bound_service_account_namespaces = [module.ewc-vault-init.vault_namespace_name]
+  token_policies                   = [vault_policy.backup-cron-job.name]
+  token_ttl                        = 300
 
   depends_on = [module.ewc-vault-init]
 }
@@ -339,7 +385,7 @@ resource "helm_release" "apisix" {
 
   set {
     name  = "apisix.vault.host"
-    value = "http://vault-active.vault.svc.cluster.local:8200"
+    value = local.vault_host
   }
 
   set {
@@ -458,7 +504,7 @@ resource "kubernetes_secret" "dev-portal-secret-for-backend" {
     "secrets.yaml" = yamlencode({
 
       "vault" = {
-        "url"          = "http://vault-active.vault.svc.cluster.local:8200"
+        "url"          = local.vault_host
         "token"        = vault_token.dev-portal-global.client_token
         "base_path"    = "apisix-dev/consumers"
         "secret_phase" = random_password.dev-portal-password.result

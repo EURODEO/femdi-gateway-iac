@@ -133,6 +133,11 @@ variable "vault_token" {
   sensitive   = true
 }
 
+variable "vault_backup_bucket_base_path" {
+  description = "AWS S3 bucket base path for vault backup files"
+  type        = string
+  default     = "dev-rodeo-ewc-vault/vault/"
+}
 
 variable "dev-portal_subdomain" {
   description = "subdomain where devportal will be hosted"
@@ -154,6 +159,18 @@ variable "google_idp_client_secret" {
 
 variable "github_idp_client_secret" {
   description = "Secret to use Github idp"
+  type        = string
+  sensitive   = true
+}
+
+variable "s3_bucket_access_key" {
+  description = "AWS access key for S3 bucket for backups"
+  type        = string
+  sensitive   = true
+}
+
+variable "s3_bucket_secret_key" {
+  description = "AWS secret key for S3 bucket for backups"
   type        = string
   sensitive   = true
 }
