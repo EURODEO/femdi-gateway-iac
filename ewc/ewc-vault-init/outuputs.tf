@@ -39,3 +39,8 @@ output "vault_pod_ready_statuses_after_init" {
     ]
   ])
 }
+
+output "vault_namespace_name" {
+  description = "Name of the namespace where Vault is running"
+  value       = kubernetes_namespace.vault.metadata[0].name
+}

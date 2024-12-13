@@ -1,6 +1,13 @@
 ################################################################################
 # Install Keycloak 
 ################################################################################
+
+locals {
+  postgres_host    = "keycloak-postgresql.keycloak.svc.cluster.local"
+  postgres_db_name = "bitnami_keycloak" # Default from Helm chart
+  postgres_db_user = "bn_keycloak"      # default from Helm chart
+}
+
 resource "kubernetes_namespace" "keycloak" {
   metadata {
     annotations = {
@@ -32,6 +39,8 @@ resource "kubernetes_config_map" "realm-json" {
 }
 
 #TODO: Add HPA
+#TODO: Consider managing the secrets in self managed kubernetes_secret instead of using Helm chart generated secret
+#      Could not make self managed secret work reliably. Possible cause of this https://github.com/bitnami/charts/issues/18014
 resource "helm_release" "keycloak" {
   name             = "keycloak"
   repository       = "https://charts.bitnami.com/bitnami"
@@ -63,6 +72,16 @@ resource "helm_release" "keycloak" {
   set_sensitive {
     name  = "auth.adminPassword"
     value = var.keycloak_admin_password
+  }
+
+  set {
+    name  = "postgresql.auth.username"
+    value = local.postgres_db_user
+  }
+
+  set {
+    name  = "postgresql.auth.database"
+    value = local.postgres_db_name
   }
 
   # Needed for configmap realm import
@@ -117,6 +136,7 @@ resource "helm_release" "keycloak" {
 
 
 }
+
 ################################################################################
 
 # Install Dev-portal
