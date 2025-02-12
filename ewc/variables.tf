@@ -198,3 +198,39 @@ variable "backup_bucket_base_path" {
   type        = string
   default     = "dev-rodeo-backups/ewc"
 }
+
+variable "alert_email_recipients" {
+  description = "Email addresses to receive alerts"
+  type        = list(string)
+  default     = []
+}
+
+variable "alert_email_sender" {
+  description = "Email address to send alerts"
+  type        = string
+}
+
+variable "alert_smtp_auth_username" {
+  description = <<-EOF
+SMTP username for alertmanager.
+Leave empty if not available yet. 
+Note: Leaving empty will skip the creation of the default Alertmanager Config
+EOF
+  type        = string
+}
+
+variable "alert_smtp_auth_password" {
+  description = <<-EOF
+SMTP password for alertmanager.
+Leave empty if not available yet. 
+Note: Leaving empty will skip the creation of the default Alertmanager Config
+EOF
+  type        = string
+  sensitive   = true
+}
+
+variable "alert_smtp_host" {
+  description = "SMTP host for alertmanager"
+  type        = string
+  default     = "smtp.gmail.com:587"
+}

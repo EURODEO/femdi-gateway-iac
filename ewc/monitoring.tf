@@ -45,6 +45,12 @@ data "rancher2_project" "System" {
   name       = "System"
 }
 
+# alertmanagerConfigMatcherStrategy:
+#    type: None
+#
+# Without this ^ we need to define alertmanagerConfigs per namespace
+# https://github.com/rancher/rancher/issues/41585
+# https://github.com/prometheus-operator/prometheus-operator/issues/3737
 resource "rancher2_app_v2" "rancher-monitoring" {
   cluster_id = var.rancher_cluster_id
   name       = "rancher-monitoring"
@@ -60,6 +66,10 @@ grafana:
   grafana.ini:
     security:
       angular_support_enabled: true
+alertmanager:
+  alertmanagerSpec:
+    alertmanagerConfigMatcherStrategy:
+      type: None
 EOF
 }
 

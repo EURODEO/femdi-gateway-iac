@@ -84,6 +84,26 @@ terraform output dev-portal_keycloak_secret
 
 APISIX and the Dev Portal use service tokens to communicate with Vault. These tokens have a maximum TTL of 768 hours (32 days). To prevent token revocation, a cron job is scheduled to run on the 1st and 15th of each month to reset the token period.
 
+## Monitoring
+
+### Alert Manager
+
+The current default configuration sends all alerts gathered by the Prometheus Operator via email. To make the Alertmanager work, a working SMTP server is required. The SMTP server configuration is based on Gmail's SMTP settings, but different SMTP servers might require additional TLS configurations.
+
+By default, the configuration does not group alerts; they are fired as they are received. If you want to group alerts, change the repeat interval etc. or add additional notification methods (e.g., Slack), you can modify the configuration accordingly or create a separate configuration for that.
+
+To make the default Alertmanager configuration work, you need to provide the following variables:
+- `alert_smtp_auth_username`: The SMTP username.
+- `alert_smtp_auth_password`: The SMTP password.
+- `alert_smtp_host`: The SMTP server host.
+- `alert_email_sender`: The email address used to send alerts.
+- `alert_email_recipients`: A list of email addresses to receive alerts.
+
+If you want to skip the Alertmanager configuration for now, you can provide an empty string for the `alert_smtp_auth_username` and/or `alert_smtp_auth_password` variables.
+
+For more advanced configurations, such as adding Slack notifications or grouping alerts, you can update the `receivers` and `route` sections in the `alertmanager_configs.tf` file or create a new configuration for a dedicated Alertmanager setup.
+
+
 ## Disaster Recovery
 
 The disaster recovery plan includes backing up application databases and logical data, and restoring them from snapshot files. The backup and restore processes are performed using database-specific tools like `pg_dump` and `pg_restore`.
